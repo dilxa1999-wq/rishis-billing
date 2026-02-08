@@ -4,13 +4,43 @@ import { API_BASE_URL } from '../apiConfig';
 
 const Inventory = () => {
     const [ingredients, setIngredients] = useState([]);
+    const [savingId, setSavingId] = useState(null);
+    const token = localStorage.getItem('token'); // Corrected from { token } as localStorage.getItem returns a string
 
-    useEffect(() => {
+    const fetchInventory = () => {
         fetch(`${API_BASE_URL}/inventory`)
             .then(res => res.json())
             .then(data => setIngredients(data))
             .catch(err => console.error(err));
+    };
+
+    useEffect(() => {
+        fetchInventory();
     }, []);
+
+    const updateDBStock = async (id, newStock) => {
+        setSavingId(id);
+        const freshToken = localStorage.getItem('token');
+        try {
+            const res = await fetch(`${API_BASE_URL}/inventory/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${freshToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ current_stock: parseFloat(newStock) })
+            });
+            if (res.ok) {
+                fetchInventory(); // Refresh list
+            } else {
+                alert("Failed to save inventory update");
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSavingId(null);
+        }
+    };
 
     // Mock functionality for demo since we didn't build the full backend editing for inventory in the quick plan
     // In a full app, this would make API calls to update stock
@@ -64,7 +94,13 @@ const Inventory = () => {
                                         )}
                                     </td>
                                     <td className="p-4 text-right">
-                                        <button className="text-blue-500 hover:underline text-sm">Update</button>
+                                        <button
+                                            onClick={() => updateDBStock(ing.id, ing.current_stock)}
+                                            disabled={savingId === ing.id}
+                                            className="text-pink-500 hover:text-pink-600 font-bold text-sm bg-pink-50 px-3 py-1 rounded-lg transition-colors disabled:opacity-50"
+                                        >
+                                            {savingId === ing.id ? 'Saving...' : 'Save Update'}
+                                        </button>
                                     </td>
                                 </tr>
                             ))

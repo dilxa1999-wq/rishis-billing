@@ -244,6 +244,26 @@ app.get('/api/categories', async (req, res) => {
     }
 });
 
+// Inventory
+app.get('/api/inventory', async (req, res) => {
+    try {
+        const ingredients = await dbAll('SELECT * FROM ingredients');
+        res.json(ingredients);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/inventory/:id', authenticateToken, async (req, res) => {
+    const { current_stock } = req.body;
+    try {
+        await dbRun('UPDATE ingredients SET current_stock = ? WHERE id = ?', [current_stock, req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Orders & Billing
 app.get('/api/orders', async (req, res) => {
     try {
@@ -276,6 +296,15 @@ app.get('/api/orders/:id', async (req, res) => {
 app.post('/api/orders', async (req, res) => {
     const { customer_name, customer_contact, items, total_amount, payment_method, type, pickup_datetime, delivery_fee } = req.body;
     try {
+        // Validation: Check stock before processing
+        for (const item of items) {
+            const product = await dbGet('SELECT name, stock_quantity FROM products WHERE id = ?', [item.id]);
+            if (!product) throw new Error(`Product ${item.id} not found`);
+            if (product.stock_quantity < item.quantity) {
+                return res.status(400).json({ error: `Not enough stock for ${product.name}. (Available: ${product.stock_quantity})` });
+            }
+        }
+
         const orderResult = await dbRun(`
       INSERT INTO orders (customer_name, customer_contact, total_amount, payment_method, type, pickup_datetime, delivery_fee)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -373,11 +402,29 @@ app.get('/api/stats', async (req, res) => {
     }
 });
 
-// Inventory
-app.get('/api/inventory', async (req, res) => {
+// Reports
+app.get('/api/reports/sales', async (req, res) => {
     try {
-        const ingredients = await dbAll('SELECT * FROM ingredients');
-        res.json(ingredients);
+        // Get last 7 days of sales
+        const days = [];
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            days.push(date.toISOString().split('T')[0]);
+        }
+
+        const reportData = [];
+        for (const day of days) {
+            const sales = await dbGet(`
+                SELECT SUM(total_amount) as total 
+                FROM orders 
+                WHERE date(created_at) = ?
+            `, [day]);
+
+            const dayName = new Date(day).toLocaleDateString('en-US', { weekday: 'short' });
+            reportData.push({ name: dayName, sales: sales.total || 0 });
+        }
+        res.json(reportData);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

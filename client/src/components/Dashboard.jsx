@@ -20,22 +20,30 @@ const Dashboard = () => {
     totalOrders: 0,
     lowStockCount: 0
   });
+  const [recentOrders, setRecentOrders] = useState([]);
 
   useEffect(() => {
-    // Fetch stats from API
-    // In a real scenario without the backend running, this will fail, 
-    // so we should probably mock it or handle the error gracefully for the UI demo.
+    // Fetch stats
     fetch(`${API_BASE_URL}/stats`)
       .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();
       })
-      .then(data => setStats(data))
-      .catch(err => {
-        console.log("Failed to fetch stats (Backend might be offline)", err);
-        // Fallback for demo purposes if backend is off
-        setStats({ dailySales: 0, totalOrders: 0, lowStockCount: 0 });
-      });
+      .then(data => setStats({
+        dailySales: data.dailySales || 0,
+        totalOrders: data.totalOrders || 0,
+        lowStockCount: data.lowStockCount || 0
+      }))
+      .catch(err => console.error(err));
+
+    // Fetch recent orders
+    fetch(`${API_BASE_URL}/orders`)
+      .then(res => {
+        if (!res.ok) throw new Error('Network response was not ok');
+        return res.json();
+      })
+      .then(data => setRecentOrders(data.slice(0, 5)))
+      .catch(err => console.error(err));
   }, []);
 
   return (
@@ -70,8 +78,30 @@ const Dashboard = () => {
         <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
           <TrendingUp className="mr-2 text-pink-500" /> Recent Activity
         </h2>
-        <div className="text-gray-500 h-32 flex items-center justify-center border-2 border-dashed border-gray-100 rounded-lg">
-          No recent orders
+        <div className="space-y-4">
+          {recentOrders.length === 0 ? (
+            <div className="text-gray-500 h-32 flex items-center justify-center border-2 border-dashed border-gray-100 rounded-lg">
+              No recent orders
+            </div>
+          ) : (
+            recentOrders.map(order => (
+              <div key={order.id} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg transition-colors border-b border-gray-50 last:border-0">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 font-bold">
+                    #{order.id}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-800">{order.customer_name || 'Walk-in Customer'}</p>
+                    <p className="text-xs text-gray-400">{new Date(order.created_at).toLocaleTimeString()}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-gray-800">Rs. {parseFloat(order.total_amount).toFixed(2)}</p>
+                  <p className={`text-[10px] font-bold uppercase ${order.status === 'completed' ? 'text-green-500' : 'text-yellow-500'}`}>{order.status}</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

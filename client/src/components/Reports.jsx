@@ -2,18 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
 import { Download } from 'lucide-react';
+import { API_BASE_URL } from '../apiConfig';
 
 const Reports = () => {
-    // Mock data for visualization since backend history might be empty
-    const data = [
-        { name: 'Mon', sales: 4000 },
-        { name: 'Tue', sales: 3000 },
-        { name: 'Wed', sales: 2000 },
-        { name: 'Thu', sales: 2780 },
-        { name: 'Fri', sales: 1890 },
-        { name: 'Sat', sales: 2390 },
-        { name: 'Sun', sales: 3490 },
-    ];
+    const [data, setData] = useState([]);
+
+    useEffect(() => {
+        fetch(`${API_BASE_URL}/reports/sales`)
+            .then(res => res.json())
+            .then(d => setData(d))
+            .catch(err => console.error(err));
+    }, []);
 
     const downloadPDF = () => {
         const doc = new jsPDF();

@@ -23,6 +23,13 @@ const POS = () => {
     const addToCart = (product) => {
         setCart(prev => {
             const existing = prev.find(item => item.id === product.id);
+            const currentQty = existing ? existing.quantity : 0;
+
+            if (currentQty + 1 > product.stock_quantity) {
+                alert(`Cannot add more "${product.name}". Only ${product.stock_quantity} in stock.`);
+                return prev;
+            }
+
             if (existing) {
                 return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
             }
@@ -34,7 +41,10 @@ const POS = () => {
         setCart(prev => prev.map(item => {
             if (item.id === id) {
                 const newQty = Math.max(1, item.quantity + change);
-                // Check stock limit here if needed
+                if (change > 0 && newQty > item.stock_quantity) {
+                    alert(`Only ${item.stock_quantity} in stock for "${item.name}"`);
+                    return item;
+                }
                 return { ...item, quantity: newQty };
             }
             return item;
