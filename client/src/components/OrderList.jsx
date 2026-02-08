@@ -262,7 +262,7 @@ const OrderList = () => {
                                                 <h5 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Order Items</h5>
                                                 {order.items.map((item, idx) => (
                                                     <div key={idx} className="flex justify-between text-sm">
-                                                        <span className="text-gray-700 font-medium">{item.quantity}x {item.name}</span>
+                                                        <span className="text-gray-700 font-medium">{item.quantity} <span className="text-[10px] uppercase text-gray-400 font-bold">{item.unit_at_sale || 'pcs'}</span> x {item.name}</span>
                                                         <span className="text-gray-500">Rs. {(item.price_at_sale * item.quantity).toFixed(2)}</span>
                                                     </div>
                                                 ))}

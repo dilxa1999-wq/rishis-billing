@@ -101,8 +101,9 @@ const initDb = async () => {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             order_id INTEGER,
             product_id INTEGER,
-            quantity INTEGER NOT NULL,
+            quantity REAL NOT NULL,
             price_at_sale REAL NOT NULL,
+            unit_at_sale TEXT DEFAULT 'pcs',
             FOREIGN KEY(order_id) REFERENCES orders(id),
             FOREIGN KEY(product_id) REFERENCES products(id)
           );
@@ -116,9 +117,11 @@ const initDb = async () => {
           );
         `);
 
-        // Migration: Sync stock_quantity to REAL if needed (SQLite handles dynamic typing but this is for clarity)
         try {
             await dbRun('ALTER TABLE products ADD COLUMN unit TEXT DEFAULT "pcs"');
+        } catch (e) { /* ignore */ }
+        try {
+            await dbRun('ALTER TABLE order_items ADD COLUMN unit_at_sale TEXT DEFAULT "pcs"');
         } catch (e) { /* ignore */ }
 
         // Seed Admin User
@@ -269,7 +272,7 @@ app.get('/api/orders/:id', async (req, res) => {
         const items = await dbAll(`
             SELECT oi.*, p.name 
             FROM order_items oi
-            JOIN products p ON oi.product_id = p.id
+            LEFT JOIN products p ON oi.product_id = p.id
             WHERE oi.order_id = ?
             `, [orderId]);
 
@@ -299,9 +302,9 @@ app.post('/api/orders', async (req, res) => {
         const orderId = orderResult.lastID;
         for (const item of items) {
             await dbRun(`
-        INSERT INTO order_items(order_id, product_id, quantity, price_at_sale)
-        VALUES(?, ?, ?, ?)
-            `, [orderId, item.id, item.quantity, item.price]);
+        INSERT INTO order_items(order_id, product_id, quantity, price_at_sale, unit_at_sale)
+        VALUES(?, ?, ?, ?, ?)
+            `, [orderId, item.id, item.quantity, item.price, item.unit || 'pcs']);
 
             await dbRun(`
         UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?
