@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, Phone, CheckCircle, Clock as Pending, Download, Trash2, XCircle } from 'lucide-react';
 import { generatePDF } from '../utils/pdfGenerator';
+import { API_BASE_URL } from '../apiConfig';
 
 const OrderList = () => {
     const [orders, setOrders] = useState([]);
@@ -10,7 +11,7 @@ const OrderList = () => {
     const token = localStorage.getItem('token');
 
     const fetchOrders = () => {
-        fetch('/api/orders')
+        fetch(`${API_BASE_URL}/orders`)
             .then(res => res.json())
             .then(data => setOrders(data))
             .catch(err => console.error(err));
@@ -27,7 +28,7 @@ const OrderList = () => {
     const handleDownload = async (orderId) => {
         try {
             console.log("Starting download for order:", orderId);
-            const res = await fetch(`/api/orders/${orderId}`);
+            const res = await fetch(`${API_BASE_URL}/orders/${orderId}`);
 
             const contentType = res.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
@@ -60,7 +61,7 @@ const OrderList = () => {
         }
 
         try {
-            const res = await fetch(`/api/orders/${orderId}`);
+            const res = await fetch(`${API_BASE_URL}/orders/${orderId}`);
             if (res.ok) {
                 const fullOrder = await res.json();
                 setOrders(prev => prev.map(o => o.id === orderId ? { ...o, items: fullOrder.items } : o));
@@ -80,7 +81,7 @@ const OrderList = () => {
         }
 
         try {
-            const res = await fetch(`/api/orders/${orderId}`, {
+            const res = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${freshToken}` }
             });
@@ -109,7 +110,7 @@ const OrderList = () => {
         }
 
         try {
-            const res = await fetch(`/api/orders/bulk-delete`, {
+            const res = await fetch(`${API_BASE_URL}/orders/bulk-delete`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${freshToken}`,
@@ -154,7 +155,7 @@ const OrderList = () => {
         }
 
         try {
-            const res = await fetch(`/api/orders`, {
+            const res = await fetch(`${API_BASE_URL}/orders`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${freshToken}` }
             });

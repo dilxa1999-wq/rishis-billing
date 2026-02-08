@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, ShoppingBag, AlertTriangle, TrendingUp } from 'lucide-react';
+import { API_BASE_URL } from '../apiConfig';
 
 const StatCard = ({ title, value, icon: Icon, color }) => (
   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
@@ -24,7 +25,7 @@ const Dashboard = () => {
     // Fetch stats from API
     // In a real scenario without the backend running, this will fail, 
     // so we should probably mock it or handle the error gracefully for the UI demo.
-    fetch('/api/stats')
+    fetch(`${API_BASE_URL}/stats`)
       .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();

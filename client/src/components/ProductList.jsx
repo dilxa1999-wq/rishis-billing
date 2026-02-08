@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Search, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL, BASE_URL } from '../apiConfig';
 
 const ProductList = () => {
     const [products, setProducts] = useState([]);
@@ -20,14 +21,14 @@ const ProductList = () => {
 
     const fetchProducts = async () => {
         try {
-            const res = await fetch('/api/products');
+            const res = await fetch(`${API_BASE_URL}/products`);
             if (res.ok) setProducts(await res.json());
         } catch (err) { console.error(err); }
     };
 
     const fetchCategories = async () => {
         try {
-            const res = await fetch('/api/categories');
+            const res = await fetch(`${API_BASE_URL}/categories`);
             if (res.ok) setCategories(await res.json());
         } catch (err) { console.error(err); }
     };
@@ -47,7 +48,7 @@ const ProductList = () => {
         if (imageFile) data.append('image', imageFile);
 
         try {
-            const res = await fetch('/api/products', {
+            const res = await fetch(`${API_BASE_URL}/products`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -153,7 +154,11 @@ const ProductList = () => {
                                 <tr key={product.id} className="border-t border-gray-50 hover:bg-pink-50 transition-colors">
                                     <td className="p-4">
                                         {product.image_url ? (
-                                            <img src={product.image_url} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
+                                            <img
+                                                src={product.image_url.startsWith('http') ? product.image_url : `${BASE_URL}${product.image_url}`}
+                                                alt={product.name}
+                                                className="w-12 h-12 rounded-lg object-cover"
+                                            />
                                         ) : (
                                             <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400">
                                                 <ImageIcon size={20} />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Printer, Truck } from 'lucide-react';
 import { generatePDF } from '../utils/pdfGenerator';
+import { API_BASE_URL, BASE_URL } from '../apiConfig';
 
 const POS = () => {
     const [products, setProducts] = useState([]);
@@ -13,7 +14,7 @@ const POS = () => {
     const [isDelivery, setIsDelivery] = useState(false);
 
     useEffect(() => {
-        fetch('/api/products')
+        fetch(`${API_BASE_URL}/products`)
             .then(res => res.json())
             .then(data => setProducts(data))
             .catch(err => console.error("Error fetching products", err));
@@ -62,7 +63,7 @@ const POS = () => {
             delivery_fee: isDelivery ? parseFloat(deliveryFee || 0) : 0
         };
 
-        fetch('/api/orders', {
+        fetch(`${API_BASE_URL}/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(orderData)
@@ -122,7 +123,13 @@ const POS = () => {
                             onClick={() => addToCart(product)}
                         >
                             <div className="h-24 md:h-32 bg-gray-100 rounded-md mb-2 overflow-hidden">
-                                {product.image_url && <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />}
+                                {product.image_url && (
+                                    <img
+                                        src={product.image_url.startsWith('http') ? product.image_url : `${BASE_URL}${product.image_url}`}
+                                        alt={product.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                )}
                             </div>
                             <h3 className="font-medium text-gray-800 text-sm md:text-base">{product.name}</h3>
                             <p className="text-pink-500 font-bold mt-auto">Rs. {product.price}</p>

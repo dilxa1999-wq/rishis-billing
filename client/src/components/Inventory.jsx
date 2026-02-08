@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Archive, AlertTriangle } from 'lucide-react';
+import { API_BASE_URL } from '../apiConfig';
 
 const Inventory = () => {
     const [ingredients, setIngredients] = useState([]);
 
     useEffect(() => {
-        fetch('/api/inventory')
+        fetch(`${API_BASE_URL}/inventory`)
             .then(res => res.json())
             .then(data => setIngredients(data))
             .catch(err => console.error(err));
