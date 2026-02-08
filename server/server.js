@@ -167,23 +167,9 @@ const upload = multer({ storage: storage })
 
 // --- Middleware ---
 const authenticateToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (token == null) {
-        console.warn(`Auth failed: No token provided for ${req.method} ${req.url}`);
-        return res.sendStatus(401);
-    }
-
-    jwt.verify(token, SECRET_KEY, (err, user) => {
-        if (err) {
-            console.error(`Auth failed: Invalid/Expired token for ${req.method} ${req.url}`, err.message);
-            return res.sendStatus(403);
-        }
-        req.user = user;
-        console.log(`Auth success: User ${user.username || user.id} accessing ${req.method} ${req.url}`);
-        next();
-    });
+    // Authentication disabled as per user request to remove admin login requirement
+    req.user = { id: 1, username: 'admin', role: 'admin' };
+    next();
 };
 
 // --- API Endpoints ---

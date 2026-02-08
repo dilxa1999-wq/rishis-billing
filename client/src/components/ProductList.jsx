@@ -50,9 +50,6 @@ const ProductList = () => {
         try {
             const res = await fetch(`${API_BASE_URL}/products`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
                 body: data
             });
             if (res.ok) {

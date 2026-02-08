@@ -4,20 +4,12 @@ import { API_BASE_URL } from '../apiConfig';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [token, setToken] = useState(localStorage.getItem('token'));
+    // Default to admin user for a seamless experience
+    const [user, setUser] = useState({ username: 'admin', role: 'admin' });
+    const [token, setToken] = useState('dummy-token');
 
     useEffect(() => {
-        if (token) {
-            // In a real app, verify token validity with backend here
-            // For now, we trust presence of token or decode it
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                setUser({ username: payload.username, role: payload.role });
-            } catch (e) {
-                logout();
-            }
-        }
+        // Auth barrier removed
     }, [token]);
 
     const login = async (username, password) => {

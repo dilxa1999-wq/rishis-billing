@@ -5,7 +5,6 @@ import { API_BASE_URL } from '../apiConfig';
 const Inventory = () => {
     const [ingredients, setIngredients] = useState([]);
     const [savingId, setSavingId] = useState(null);
-    const token = localStorage.getItem('token'); // Corrected from { token } as localStorage.getItem returns a string
 
     const fetchInventory = () => {
         fetch(`${API_BASE_URL}/inventory`)
@@ -20,12 +19,10 @@ const Inventory = () => {
 
     const updateDBStock = async (id, newStock) => {
         setSavingId(id);
-        const freshToken = localStorage.getItem('token');
         try {
             const res = await fetch(`${API_BASE_URL}/inventory/${id}`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${freshToken}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ current_stock: parseFloat(newStock) })

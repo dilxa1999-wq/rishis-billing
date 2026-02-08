@@ -74,16 +74,10 @@ const OrderList = () => {
 
     const handleDeleteOrder = async (orderId) => {
         if (!window.confirm("Are you sure you want to delete this order?")) return;
-        const freshToken = localStorage.getItem('token');
-        if (!freshToken) {
-            alert("Your session has expired. Please log in again.");
-            return;
-        }
 
         try {
             const res = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${freshToken}` }
+                method: 'DELETE'
             });
             if (res.ok) {
                 fetchOrders();
@@ -103,17 +97,10 @@ const OrderList = () => {
         if (selectedIds.length === 0) return;
         if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} selected orders?`)) return;
 
-        const freshToken = localStorage.getItem('token');
-        if (!freshToken) {
-            alert("Your session has expired. Please log in again.");
-            return;
-        }
-
         try {
             const res = await fetch(`${API_BASE_URL}/orders/bulk-delete`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${freshToken}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ ids: selectedIds })
@@ -148,16 +135,10 @@ const OrderList = () => {
 
     const handleClearAll = async () => {
         if (!window.confirm("WARNING: This will delete ALL orders. This cannot be undone. Proceed?")) return;
-        const freshToken = localStorage.getItem('token');
-        if (!freshToken) {
-            alert("Your session has expired. Please log in again.");
-            return;
-        }
 
         try {
             const res = await fetch(`${API_BASE_URL}/orders`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${freshToken}` }
+                method: 'DELETE'
             });
             if (res.ok) {
                 fetchOrders();

@@ -23,13 +23,7 @@ const SidebarLink = ({ to, icon: Icon, label, onClick }) => (
 );
 
 const ProtectedRoute = ({ children }) => {
-    const { token } = useAuth();
-    const location = useLocation();
-
-    if (!token) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
-    }
-
+    // Auth disabled as per user request
     return children;
 };
 
@@ -83,17 +77,9 @@ const Layout = () => {
                 </nav>
 
                 <div className="p-4 border-t border-gray-100">
-                    <div className="flex items-center justify-between mb-4 px-2">
-                        <span className="text-sm font-bold text-gray-600 truncate max-w-[100px]">{user?.username}</span>
-                        <span className="text-xs bg-pink-100 text-pink-600 px-2 py-1 rounded-full">{user?.role}</span>
+                    <div className="flex items-center justify-center mb-2 px-2">
+                        <span className="text-xs bg-pink-100 text-pink-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">Admin Mode</span>
                     </div>
-                    <button
-                        onClick={() => { logout(); closeMenu(); }}
-                        className="flex items-center space-x-3 p-3 w-full rounded-lg text-red-500 hover:bg-red-50 transition-colors"
-                    >
-                        <LogOut size={20} />
-                        <span className="font-medium">Logout</span>
-                    </button>
                 </div>
             </div>
 
@@ -117,11 +103,8 @@ function App() {
         <AuthProvider>
             <Router>
                 <Routes>
-                    <Route path="/login" element={<Login />} />
                     <Route path="/*" element={
-                        <ProtectedRoute>
-                            <Layout />
-                        </ProtectedRoute>
+                        <Layout />
                     } />
                 </Routes>
             </Router>
