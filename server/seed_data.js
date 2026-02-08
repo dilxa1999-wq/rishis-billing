@@ -51,29 +51,18 @@ const seed = async () => {
         });
     });
 
-    const get = (sql, params = []) => new Promise((resolve, reject) => {
-        db.get(sql, params, (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-        });
-    });
-
     try {
-        // Ensure categories exist
-        const categories = [...new Set(products.map(p => p.category))];
-        for (const cat of categories) {
-            await run('INSERT OR IGNORE INTO categories (name) VALUES (?)', [cat]);
-        }
-
-        // Insert products
+        // Insert products (categories removed)
         for (const p of products) {
-            const catRow = await get('SELECT id FROM categories WHERE name = ?', [p.category]);
-            if (catRow) {
-                await run(`
-                    INSERT INTO products (name, category_id, price, stock_quantity, description) 
-                    VALUES (?, ?, ?, ?, 'Freshly baked')
-                `, [p.name, catRow.id, p.price, p.stock]);
-            }
+            // Determine unit based on name or category hint
+            let unit = 'pcs';
+            if (p.name.includes('KG') || p.category === 'Cookies') unit = 'KG';
+            if (p.category === 'Snacks') unit = 'pcs';
+
+            await run(`
+                INSERT INTO products (name, price, stock_quantity, description, unit) 
+                VALUES (?, ?, ?, 'Freshly baked', ?)
+            `, [p.name, p.price, p.stock, unit]);
         }
 
         console.log("Seeding complete!");

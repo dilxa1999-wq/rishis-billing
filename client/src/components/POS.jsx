@@ -150,7 +150,9 @@ const POS = () => {
                                 )}
                             </div>
                             <h3 className="font-medium text-gray-800 text-sm md:text-base">{product.name}</h3>
-                            <p className="text-pink-500 font-bold mt-auto">Rs. {product.price}</p>
+                            <p className="text-pink-500 font-bold mt-auto text-sm">
+                                Rs. {product.price} <span className="text-[10px] text-gray-400 font-normal uppercase">/ {product.unit || 'pcs'}</span>
+                            </p>
                         </div>
                     ))}
                 </div>
@@ -171,7 +173,7 @@ const POS = () => {
                             <div key={item.id} className="flex justify-between items-center">
                                 <div>
                                     <h4 className="font-medium text-gray-800 text-sm">{item.name}</h4>
-                                    <p className="text-xs text-gray-500">Rs. {item.price} x {item.quantity}</p>
+                                    <p className="text-xs text-gray-500">Rs. {item.price} <span className="text-[10px] uppercase">/ {item.unit || 'pcs'}</span> x {item.quantity}</p>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-gray-100 rounded"><Minus size={14} /></button>

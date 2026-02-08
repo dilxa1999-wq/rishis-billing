@@ -9,14 +9,13 @@ const ProductList = () => {
     const [showForm, setShowForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState({
-        name: '', category_id: '', price: '', description: '', stock_quantity: ''
+        name: '', price: '', description: '', stock_quantity: '', unit: 'pcs'
     });
     const [imageFile, setImageFile] = useState(null);
     const { token } = useAuth();
 
     useEffect(() => {
         fetchProducts();
-        fetchCategories();
     }, []);
 
     const fetchProducts = async () => {
@@ -26,12 +25,8 @@ const ProductList = () => {
         } catch (err) { console.error(err); }
     };
 
-    const fetchCategories = async () => {
-        try {
-            const res = await fetch(`${API_BASE_URL}/categories`);
-            if (res.ok) setCategories(await res.json());
-        } catch (err) { console.error(err); }
-    };
+    // Categories removed as per user request
+    const fetchCategories = () => { };
 
     const handleInputChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -55,7 +50,7 @@ const ProductList = () => {
             if (res.ok) {
                 setShowForm(false);
                 fetchProducts();
-                setFormData({ name: '', category_id: '', price: '', description: '', stock_quantity: '' });
+                setFormData({ name: '', price: '', description: '', stock_quantity: '', unit: 'pcs' });
                 setImageFile(null);
             }
         } catch (err) {
@@ -90,10 +85,12 @@ const ProductList = () => {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Category</label>
-                                    <select name="category_id" onChange={handleInputChange} value={formData.category_id} required className="w-full border rounded-lg p-2">
-                                        <option value="">Select Category</option>
-                                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    <label className="block text-sm font-medium text-gray-700">Unit (KG, pcs, etc.)</label>
+                                    <select name="unit" onChange={handleInputChange} value={formData.unit} required className="w-full border rounded-lg p-2">
+                                        <option value="pcs">pcs (Pieces)</option>
+                                        <option value="KG">KG (Kilogram)</option>
+                                        <option value="Plate">Plate</option>
+                                        <option value="Box">Box</option>
                                     </select>
                                 </div>
                                 <div>
@@ -137,7 +134,7 @@ const ProductList = () => {
                         <tr>
                             <th className="p-4">Image</th>
                             <th className="p-4">Name</th>
-                            <th className="p-4">Category</th>
+                            <th className="p-4">Unit</th>
                             <th className="p-4">Price</th>
                             <th className="p-4">Stock</th>
                             <th className="p-4 text-right">Actions</th>
@@ -163,7 +160,7 @@ const ProductList = () => {
                                         )}
                                     </td>
                                     <td className="p-4 font-medium text-gray-800">{product.name}</td>
-                                    <td className="p-4 text-gray-600">{product.category_name}</td>
+                                    <td className="p-4 text-gray-600 uppercase font-bold text-xs">{product.unit}</td>
                                     <td className="p-4 font-medium text-green-600">Rs. {product.price}</td>
                                     <td className="p-4">
                                         <span className={`px-2 py-1 rounded-full text-xs ${product.stock_quantity < 5 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>

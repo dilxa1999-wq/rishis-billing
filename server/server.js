@@ -63,21 +63,14 @@ const dbAll = (sql, params = []) => {
 const initDb = async () => {
     try {
         await dbRun(`
-          CREATE TABLE IF NOT EXISTS categories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE
-          );
-        `);
-        await dbRun(`
           CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            category_id INTEGER,
+            unit TEXT DEFAULT 'pcs',
             price REAL NOT NULL,
             image_url TEXT,
             description TEXT,
-            stock_quantity INTEGER DEFAULT 0,
-            FOREIGN KEY(category_id) REFERENCES categories(id)
+            stock_quantity INTEGER DEFAULT 0
           );
         `);
         await dbRun(`
@@ -99,7 +92,8 @@ const initDb = async () => {
             status TEXT DEFAULT 'completed',
             type TEXT DEFAULT 'immediate',
             pickup_datetime TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            delivery_fee REAL DEFAULT 0
           );
         `);
         await dbRun(`
@@ -122,13 +116,11 @@ const initDb = async () => {
           );
         `);
 
-        // Migration: Add delivery_fee column if missing
+        // Migration: Add unit column to products if missing
         try {
-            await dbRun('ALTER TABLE orders ADD COLUMN delivery_fee REAL DEFAULT 0');
-            console.log("Added delivery_fee column to orders table");
-        } catch (e) {
-            // Column likely exists, ignore
-        }
+            await dbRun('ALTER TABLE products ADD COLUMN unit TEXT DEFAULT "pcs"');
+            console.log("Added unit column to products table");
+        } catch (e) { /* ignore */ }
 
         // Seed Admin User
         const checkUsers = await dbGet('SELECT count(*) as count FROM users');
@@ -137,15 +129,6 @@ const initDb = async () => {
             const hash = bcrypt.hashSync('admin123', salt);
             await dbRun('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', ['admin', hash, 'admin']);
             console.log("Admin user created: admin / admin123");
-        }
-
-        // Seed Categories
-        const checkCats = await dbGet('SELECT count(*) as count FROM categories');
-        if (checkCats.count === 0) {
-            const categories = ['Birthday Cakes', 'Wedding Cakes', 'Cupcakes', 'Pastries', 'Beverages'];
-            for (const cat of categories) {
-                await dbRun('INSERT INTO categories (name) VALUES (?)', [cat]);
-            }
         }
     } catch (err) {
         console.error("Error initializing database:", err);
@@ -195,11 +178,7 @@ app.post('/api/auth/login', async (req, res) => {
 // Products
 app.get('/api/products', async (req, res) => {
     try {
-        const products = await dbAll(`
-            SELECT p.*, c.name as category_name 
-            FROM products p 
-            LEFT JOIN categories c ON p.category_id = c.id
-        `);
+        const products = await dbAll('SELECT * FROM products');
         res.json(products);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -207,27 +186,22 @@ app.get('/api/products', async (req, res) => {
 });
 
 app.post('/api/products', authenticateToken, upload.single('image'), async (req, res) => {
-    const { name, category_id, price, description, stock_quantity } = req.body;
+    const { name, price, description, stock_quantity, unit } = req.body;
     const image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
     try {
         const result = await dbRun(`
-      INSERT INTO products (name, category_id, price, image_url, description, stock_quantity)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [name, category_id, price, image_url, description, stock_quantity]);
+      INSERT INTO products(name, price, image_url, description, stock_quantity, unit)
+        VALUES(?, ?, ?, ?, ?, ?)
+            `, [name, price, image_url, description, stock_quantity, unit || 'pcs']);
         res.json({ id: result.lastID });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.get('/api/categories', async (req, res) => {
-    try {
-        const categories = await dbAll('SELECT * FROM categories');
-        res.json(categories);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+app.get('/api/categories', (req, res) => {
+    res.json([]);
 });
 
 // Inventory
@@ -271,7 +245,7 @@ app.get('/api/orders/:id', async (req, res) => {
             FROM order_items oi
             JOIN products p ON oi.product_id = p.id
             WHERE oi.order_id = ?
-        `, [orderId]);
+            `, [orderId]);
 
         res.json({ ...order, items });
     } catch (err) {
@@ -292,20 +266,20 @@ app.post('/api/orders', async (req, res) => {
         }
 
         const orderResult = await dbRun(`
-      INSERT INTO orders (customer_name, customer_contact, total_amount, payment_method, type, pickup_datetime, delivery_fee)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [customer_name, customer_contact, total_amount, payment_method, type || 'immediate', pickup_datetime, delivery_fee || 0]);
+      INSERT INTO orders(customer_name, customer_contact, total_amount, payment_method, type, pickup_datetime, delivery_fee)
+        VALUES(?, ?, ?, ?, ?, ?, ?)
+            `, [customer_name, customer_contact, total_amount, payment_method, type || 'immediate', pickup_datetime, delivery_fee || 0]);
 
         const orderId = orderResult.lastID;
         for (const item of items) {
             await dbRun(`
-        INSERT INTO order_items (order_id, product_id, quantity, price_at_sale)
-        VALUES (?, ?, ?, ?)
-      `, [orderId, item.id, item.quantity, item.price]);
+        INSERT INTO order_items(order_id, product_id, quantity, price_at_sale)
+        VALUES(?, ?, ?, ?)
+            `, [orderId, item.id, item.quantity, item.price]);
 
             await dbRun(`
         UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?
-      `, [item.quantity, item.id]);
+            `, [item.quantity, item.id]);
         }
         res.json({ id: orderId, success: true });
     } catch (err) {
@@ -316,12 +290,12 @@ app.post('/api/orders', async (req, res) => {
 
 app.post('/api/orders/bulk-delete', authenticateToken, async (req, res) => {
     const { ids } = req.body;
-    console.log(`Bulk Delete Request: IDs [${ids ? ids.join(', ') : 'NONE'}]`);
+    console.log(`Bulk Delete Request: IDs[${ids ? ids.join(', ') : 'NONE'}]`);
     if (!ids || !Array.isArray(ids)) return res.status(400).json({ error: "Invalid IDs" });
     try {
         const placeholders = ids.map(() => '?').join(',');
-        await dbRun(`DELETE FROM order_items WHERE order_id IN (${placeholders})`, ids);
-        await dbRun(`DELETE FROM orders WHERE id IN (${placeholders})`, ids);
+        await dbRun(`DELETE FROM order_items WHERE order_id IN(${placeholders})`, ids);
+        await dbRun(`DELETE FROM orders WHERE id IN(${placeholders})`, ids);
         console.log(`Bulk Delete Success: Removed ${ids.length} orders`);
         res.json({ success: true });
     } catch (err) {
@@ -332,7 +306,7 @@ app.post('/api/orders/bulk-delete', authenticateToken, async (req, res) => {
 
 app.delete('/api/orders/:id', authenticateToken, async (req, res) => {
     const orderId = req.params.id;
-    console.log(`Single Delete Request: Order ID ${orderId}`);
+    console.log(`Single Delete Request: Order ID ${orderId} `);
     try {
         await dbRun('DELETE FROM order_items WHERE order_id = ?', [orderId]);
         const result = await dbRun('DELETE FROM orders WHERE id = ?', [orderId]);
@@ -343,7 +317,7 @@ app.delete('/api/orders/:id', authenticateToken, async (req, res) => {
         console.log(`Single Delete Success: Order ID ${orderId} removed`);
         res.json({ success: true });
     } catch (err) {
-        console.error(`Single Delete Error for ID ${orderId}:`, err);
+        console.error(`Single Delete Error for ID ${orderId}: `, err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -368,15 +342,15 @@ app.get('/api/stats', async (req, res) => {
     try {
         const dailySales = await dbGet(`
         SELECT SUM(total_amount) as total FROM orders WHERE date(created_at) = ?
-      `, [today]);
+            `, [today]);
 
         const totalOrders = await dbGet(`
         SELECT count(*) as count FROM orders WHERE date(created_at) = ?
-      `, [today]);
+            `, [today]);
 
         const lowStock = await dbGet(`
         SELECT count(*) as count FROM products WHERE stock_quantity < 5
-      `);
+            `);
 
         res.json({
             dailySales: dailySales.total || 0,
