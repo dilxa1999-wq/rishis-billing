@@ -91,10 +91,11 @@ export const generatePDF = async (order) => {
     const tableColumn = ["Item", "Qty", "Price", "Amount"];
     const tableRows = items.map(item => {
         const price = parseFloat(item.price || item.price_at_sale || 0);
-        const qty = parseInt(item.quantity || 0);
+        const qty = parseFloat(item.quantity || 0);
+        const unit = item.unit || 'pcs';
         return [
             item.name || 'Unknown Item',
-            qty,
+            `${qty} ${unit}`,
             `Rs. ${price.toFixed(2)}`,
             `Rs. ${(price * qty).toFixed(2)}`
         ];

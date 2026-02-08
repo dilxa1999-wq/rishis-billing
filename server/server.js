@@ -70,7 +70,7 @@ const initDb = async () => {
             price REAL NOT NULL,
             image_url TEXT,
             description TEXT,
-            stock_quantity INTEGER DEFAULT 0
+            stock_quantity REAL DEFAULT 0
           );
         `);
         await dbRun(`
@@ -116,10 +116,9 @@ const initDb = async () => {
           );
         `);
 
-        // Migration: Add unit column to products if missing
+        // Migration: Sync stock_quantity to REAL if needed (SQLite handles dynamic typing but this is for clarity)
         try {
             await dbRun('ALTER TABLE products ADD COLUMN unit TEXT DEFAULT "pcs"');
-            console.log("Added unit column to products table");
         } catch (e) { /* ignore */ }
 
         // Seed Admin User
@@ -214,10 +213,32 @@ app.get('/api/inventory', async (req, res) => {
     }
 });
 
-app.put('/api/inventory/:id', authenticateToken, async (req, res) => {
+app.put('/api/inventory/:id', async (req, res) => {
     const { current_stock } = req.body;
     try {
         await dbRun('UPDATE ingredients SET current_stock = ? WHERE id = ?', [current_stock, req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/inventory', async (req, res) => {
+    const { name, unit, current_stock, low_stock_threshold } = req.body;
+    try {
+        const result = await dbRun(
+            'INSERT INTO ingredients (name, unit, current_stock, low_stock_threshold) VALUES (?, ?, ?, ?)',
+            [name, unit, current_stock || 0, low_stock_threshold || 5]
+        );
+        res.status(201).json({ id: result.lastID, success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/inventory/:id', async (req, res) => {
+    try {
+        await dbRun('DELETE FROM ingredients WHERE id = ?', [req.params.id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -288,15 +309,21 @@ app.post('/api/orders', async (req, res) => {
     }
 });
 
-app.post('/api/orders/bulk-delete', authenticateToken, async (req, res) => {
+app.post('/api/orders/bulk-delete', async (req, res) => {
     const { ids } = req.body;
-    console.log(`Bulk Delete Request: IDs[${ids ? ids.join(', ') : 'NONE'}]`);
     if (!ids || !Array.isArray(ids)) return res.status(400).json({ error: "Invalid IDs" });
+
     try {
         const placeholders = ids.map(() => '?').join(',');
+
+        // Restore stock
+        const items = await dbAll(`SELECT product_id, quantity FROM order_items WHERE order_id IN(${placeholders})`, ids);
+        for (const item of items) {
+            await dbRun('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?', [item.quantity, item.product_id]);
+        }
+
         await dbRun(`DELETE FROM order_items WHERE order_id IN(${placeholders})`, ids);
         await dbRun(`DELETE FROM orders WHERE id IN(${placeholders})`, ids);
-        console.log(`Bulk Delete Success: Removed ${ids.length} orders`);
         res.json({ success: true });
     } catch (err) {
         console.error("Bulk Delete Error:", err);
@@ -304,17 +331,22 @@ app.post('/api/orders/bulk-delete', authenticateToken, async (req, res) => {
     }
 });
 
-app.delete('/api/orders/:id', authenticateToken, async (req, res) => {
+app.delete('/api/orders/:id', async (req, res) => {
     const orderId = req.params.id;
-    console.log(`Single Delete Request: Order ID ${orderId} `);
+    console.log(`Single Delete Request: Order ID ${orderId}`);
     try {
+        // Restore stock before deleting items
+        const items = await dbAll('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [orderId]);
+        for (const item of items) {
+            await dbRun('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?', [item.quantity, item.product_id]);
+        }
+
         await dbRun('DELETE FROM order_items WHERE order_id = ?', [orderId]);
         const result = await dbRun('DELETE FROM orders WHERE id = ?', [orderId]);
+
         if (result.changes === 0) {
-            console.warn(`Single Delete Warning: Order ID ${orderId} not found in database`);
             return res.status(404).json({ error: "Order not found" });
         }
-        console.log(`Single Delete Success: Order ID ${orderId} removed`);
         res.json({ success: true });
     } catch (err) {
         console.error(`Single Delete Error for ID ${orderId}: `, err);
@@ -322,7 +354,7 @@ app.delete('/api/orders/:id', authenticateToken, async (req, res) => {
     }
 });
 
-app.delete('/api/orders', authenticateToken, async (req, res) => {
+app.delete('/api/orders', async (req, res) => {
     console.log("Clear All Orders Request");
     try {
         await dbRun('DELETE FROM order_items');

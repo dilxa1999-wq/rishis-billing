@@ -104,7 +104,7 @@ const ProductList = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Initial Stock</label>
-                                <input name="stock_quantity" type="number" onChange={handleInputChange} value={formData.stock_quantity} className="w-full border rounded-lg p-2" />
+                                <input name="stock_quantity" type="number" step="any" onChange={handleInputChange} value={formData.stock_quantity} className="w-full border rounded-lg p-2" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Image</label>

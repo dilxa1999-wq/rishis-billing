@@ -37,15 +37,15 @@ const POS = () => {
         });
     };
 
-    const updateQuantity = (id, change) => {
+    const updateQuantity = (id, newQty) => {
         setCart(prev => prev.map(item => {
             if (item.id === id) {
-                const newQty = Math.max(1, item.quantity + change);
-                if (change > 0 && newQty > item.stock_quantity) {
+                const qty = Math.max(0.01, parseFloat(newQty) || 0);
+                if (qty > item.stock_quantity) {
                     alert(`Only ${item.stock_quantity} in stock for "${item.name}"`);
                     return item;
                 }
-                return { ...item, quantity: newQty };
+                return { ...item, quantity: qty };
             }
             return item;
         }));
@@ -176,9 +176,15 @@ const POS = () => {
                                     <p className="text-xs text-gray-500">Rs. {item.price} <span className="text-[10px] uppercase">/ {item.unit || 'pcs'}</span> x {item.quantity}</p>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-gray-100 rounded"><Minus size={14} /></button>
-                                    <span className="w-4 text-center text-sm">{item.quantity}</span>
-                                    <button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:bg-gray-100 rounded"><Plus size={14} /></button>
+                                    <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1 hover:bg-gray-100 rounded"><Minus size={14} /></button>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={item.quantity}
+                                        onChange={(e) => updateQuantity(item.id, e.target.value)}
+                                        className="w-12 text-center text-sm border rounded"
+                                    />
+                                    <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1 hover:bg-gray-100 rounded"><Plus size={14} /></button>
                                     <button onClick={() => removeFromCart(item.id)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} /></button>
                                 </div>
                             </div>
