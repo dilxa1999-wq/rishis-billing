@@ -188,13 +188,18 @@ app.post('/api/products', authenticateToken, upload.single('image'), async (req,
     const { name, price, description, stock_quantity, unit } = req.body;
     const image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
+    // Hardened parsing: ensure numbers are actually numbers, default to 0 if invalid/empty
+    const parsedPrice = parseFloat(price) || 0;
+    const parsedStock = parseFloat(stock_quantity) || 0;
+
     try {
         const result = await dbRun(`
       INSERT INTO products(name, price, image_url, description, stock_quantity, unit)
         VALUES(?, ?, ?, ?, ?, ?)
-            `, [name, price, image_url, description, stock_quantity, unit || 'pcs']);
+            `, [name, parsedPrice, image_url, description || '', parsedStock, unit || 'pcs']);
         res.json({ id: result.lastID });
     } catch (err) {
+        console.error("Product Creation Error:", err);
         res.status(500).json({ error: err.message });
     }
 });

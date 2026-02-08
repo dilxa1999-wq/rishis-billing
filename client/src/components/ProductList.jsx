@@ -52,9 +52,13 @@ const ProductList = () => {
                 fetchProducts();
                 setFormData({ name: '', price: '', description: '', stock_quantity: '', unit: 'pcs' });
                 setImageFile(null);
+            } else {
+                const errorData = await res.json();
+                alert(`Failed to add product: ${errorData.error || 'Unknown error'}`);
             }
         } catch (err) {
             console.error("Error adding product", err);
+            alert("Network error while adding product. Please check your connection.");
         }
     };
 
