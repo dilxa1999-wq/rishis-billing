@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Archive, AlertTriangle } from 'lucide-react';
+import { Archive, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 import { API_BASE_URL } from '../apiConfig';
 
 const Inventory = () => {
