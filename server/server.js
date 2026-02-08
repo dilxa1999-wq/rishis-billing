@@ -9,7 +9,7 @@ const bcrypt = require('bcryptjs');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const SECRET_KEY = 'super_secret_cake_key_change_in_production'; // Simple secret key
+const SECRET_KEY = process.env.JWT_SECRET || 'super_secret_cake_key_change_in_production'; // Use env var for production
 
 // Middleware
 app.use(cors());

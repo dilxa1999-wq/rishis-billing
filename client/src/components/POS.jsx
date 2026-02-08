@@ -78,7 +78,14 @@ const POS = () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(orderData)
         })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(errData => {
+                        throw new Error(errData.error || "Failed to place order.");
+                    });
+                }
+                return res.json();
+            })
             .then(data => {
                 if (data.success) {
                     // Generate PDF immediately
@@ -99,11 +106,12 @@ const POS = () => {
                     setCustomerContact('');
                     setDeliveryFee(0);
                     setIsDelivery(false);
-                } else {
-                    alert("Failed to place order.");
                 }
             })
-            .catch(err => console.error(err));
+            .catch(err => {
+                console.error(err);
+                alert(err.message);
+            });
     };
 
     const filteredProducts = products.filter(p =>
